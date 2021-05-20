@@ -3,10 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
+using Dto;
 
 namespace Hubs
 {
-    public class ChatHub : Hub
+    class ChatHub : Hub
     {
         private static Dictionary<string, string> Users = new Dictionary<string, string>();
 
@@ -50,6 +51,11 @@ namespace Hubs
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Test");
             await Clients.Group("Test").SendAsync("Disconnected", Users["Test"], username);
             await base.OnDisconnectedAsync(exception);
+        }
+
+        public async Task SendMove(Position position) 
+        {
+            await Clients.OthersInGroup("Test").SendAsync("RecieveMove", position);
         }
     }
 }
