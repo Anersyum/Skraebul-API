@@ -10,5 +10,6 @@ namespace Dto
         public int BrushWidth { get; set; }
         public int CanvasWidth { get; set; }
         public int CanvasHeight { get; set; }
+        public bool IsUndo { get; set; }
     }
 }
