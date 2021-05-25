@@ -90,7 +90,12 @@ namespace Hubs
 
         public async Task SendChosenWord(string word) 
         {
-            await Clients.Group("Test").SendAsync("RecieveChosenWord", word);
+            await Clients.OthersInGroup("Test").SendAsync("RecieveChosenWord", word);
+        }
+
+        public async Task SendUncoveredLetter(string letter, int letterPosition)
+        {
+            await Clients.OthersInGroup("Test").SendAsync("RecieveUncoveredLetter", letter, letterPosition);
         }
     }
 }
