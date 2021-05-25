@@ -62,17 +62,24 @@ namespace Hubs
         public override async Task OnDisconnectedAsync(Exception exception) 
         {
             string username = Users["Test"][Context.ConnectionId].Username;
+
             Users["Test"].Remove(Context.ConnectionId);
             
             List<Player> activePlayers = new List<Player>();
-
+            int count = 0;
             foreach (KeyValuePair<string, Player> kvp in Users["Test"])
             {
+                if (count < 1)
+                {
+                    kvp.Value.IsAdmin = true;
+                    count++;
+                }
+
                 activePlayers.Add(kvp.Value);
             }
 
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Test");
-            await Clients.Group("Test").SendAsync("Disconnected", activePlayers, username);
+            await Clients.OthersInGroup("Test").SendAsync("Disconnected", activePlayers, username);
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -81,8 +88,9 @@ namespace Hubs
             await Clients.OthersInGroup("Test").SendAsync("RecieveMove", position);
         }
 
-        public async Task StartGame() {
-            await Clients.OthersInGroup("Test").SendAsync("RecieveGameStarted");
+        public async Task SendChosenWord(string word) 
+        {
+            await Clients.Group("Test").SendAsync("RecieveChosenWord", word);
         }
     }
 }
