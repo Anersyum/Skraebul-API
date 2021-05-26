@@ -83,9 +83,9 @@ namespace Hubs
             await base.OnDisconnectedAsync(exception);
         }
 
-        public async Task SendMove(Position position) 
+        public async Task SendMove(Move move) 
         {
-            await Clients.OthersInGroup("Test").SendAsync("RecieveMove", position);
+            await Clients.OthersInGroup("Test").SendAsync("RecieveMove", move);
         }
 
         public async Task SendChosenWord(string word) 
