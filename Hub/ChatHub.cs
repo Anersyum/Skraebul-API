@@ -10,6 +10,7 @@ namespace Hubs
     class ChatHub : Hub
     {
         private static Dictionary<string, Dictionary<string, Player>> Users = new Dictionary<string, Dictionary<string, Player>>();
+        private static Dictionary<string, string> Game = new Dictionary<string, string>();
 
         public async Task SendMessage(string username, string message)
         {
@@ -39,6 +40,7 @@ namespace Hubs
             if (!Users.ContainsKey("Test")) 
             {
                 Users["Test"] = new Dictionary<string, Player>();
+                Game["Test"] = "";
             }
             
             Users["Test"].Add(Context.ConnectionId, player);
@@ -90,6 +92,7 @@ namespace Hubs
 
         public async Task SendChosenWord(string word) 
         {
+            Game["Test"] = word;
             await Clients.OthersInGroup("Test").SendAsync("RecieveChosenWord", word);
         }
 
