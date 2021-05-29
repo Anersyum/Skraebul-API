@@ -9,8 +9,9 @@ namespace Hubs
 {
     class ChatHub : Hub
     {
+        // try making a dictinoary on the player model so that everything can go under the game dictionary
         private static Dictionary<string, Dictionary<string, Player>> Users = new Dictionary<string, Dictionary<string, Player>>();
-        private static Dictionary<string, string> Game = new Dictionary<string, string>();
+        private static Dictionary<string, GameManager> Game = new Dictionary<string, GameManager>();
 
         public async Task SendMessage(string username, string message)
         {
@@ -40,7 +41,14 @@ namespace Hubs
             if (!Users.ContainsKey("Test")) 
             {
                 Users["Test"] = new Dictionary<string, Player>();
-                Game["Test"] = "";
+                Game["Test"] = new GameManager() 
+                {
+                    WordToGuess = "",
+                    DrawingPlayer = null,
+                    MaxRounds = 0,
+                    Round = 0,
+                    InProgress = false
+                };
             }
             
             Users["Test"].Add(Context.ConnectionId, player);
@@ -48,6 +56,7 @@ namespace Hubs
             if (Users["Test"].Count <= 1) 
             {
                 player.IsAdmin = true;
+                Game["Test"].DrawingPlayer = player;
             }
 
             List<Player> activePlayers = new List<Player>();
@@ -92,7 +101,7 @@ namespace Hubs
 
         public async Task SendChosenWord(string word) 
         {
-            Game["Test"] = word;
+            Game["Test"].WordToGuess = word;
             await Clients.OthersInGroup("Test").SendAsync("RecieveChosenWord", word);
         }
 
