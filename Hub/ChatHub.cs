@@ -102,6 +102,9 @@ namespace Hubs
         public async Task SendChosenWord(string word) 
         {
             Game["Test"].WordToGuess = word;
+            Game["Test"].MaxRounds = Users["Test"].Count * 10;
+            Game["Test"].Round++; // add check to see if max rounds is 0 because a player cannot play alone
+
             await Clients.OthersInGroup("Test").SendAsync("RecieveChosenWord", word);
         }
 
