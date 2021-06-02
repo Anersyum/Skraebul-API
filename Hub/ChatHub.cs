@@ -19,6 +19,7 @@ namespace Hubs
         }
 
         // todo: generate random room ids for groups
+        // todo: add players to game object
         public override async Task OnConnectedAsync() 
         {
             var username = Context.GetHttpContext().Request.Query["username"].ToString();
@@ -30,13 +31,6 @@ namespace Hubs
             }
 
             await Groups.AddToGroupAsync(Context.ConnectionId, "Test");
-
-            Player player = new Player
-            {
-                Username = username,
-                Points = 0,
-                IsAdmin = false
-            };
 
             if (!Users.ContainsKey("Test")) 
             {
@@ -50,8 +44,17 @@ namespace Hubs
                     InProgress = false
                 };
             }
+
+            Player player = new Player
+            {
+                Id = Users["Test"].Count,
+                Username = username,
+                Points = 0,
+                IsAdmin = false
+            };
             
-            Users["Test"].Add(Context.ConnectionId, player);
+            Context.Items.Add("UserID", Users["Test"].Count);
+            Users["Test"].Add(Users["Test"].Count.ToString(), player);
 
             if (Users["Test"].Count <= 1) 
             {
@@ -72,10 +75,18 @@ namespace Hubs
 
         public override async Task OnDisconnectedAsync(Exception exception) 
         {
-            string username = Users["Test"][Context.ConnectionId].Username;
+            string userID = Context.Items["UserID"].ToString();
+            string username = Users["Test"][userID].Username;
 
-            Users["Test"].Remove(Context.ConnectionId);
+            Users["Test"].Remove(userID);
             
+            if (Users["Test"].Count == 0)
+            {
+                Users.Remove("Test");
+                Game.Remove("Test");
+                return;
+            }
+
             List<Player> activePlayers = new List<Player>();
             int count = 0;
             foreach (KeyValuePair<string, Player> kvp in Users["Test"])
@@ -101,8 +112,12 @@ namespace Hubs
 
         public async Task SendChosenWord(string word) 
         {
+            if (Users["Test"].Count <= 1)
+            {
+                return;
+            }
             Game["Test"].WordToGuess = word;
-            Game["Test"].MaxRounds = Users["Test"].Count * 10;
+            Game["Test"].MaxRounds = Users["Test"].Count * 2;
             Game["Test"].Round++; // add check to see if max rounds is 0 because a player cannot play alone
 
             await Clients.OthersInGroup("Test").SendAsync("RecieveChosenWord", word);
@@ -111,6 +126,71 @@ namespace Hubs
         public async Task SendUncoveredLetter(string letter, int letterPosition)
         {
             await Clients.OthersInGroup("Test").SendAsync("RecieveUncoveredLetter", letter, letterPosition);
+        }
+
+        public async Task SendAnswer(string answer)
+        {
+            if (Game["Test"].Round > Game["Test"].MaxRounds)
+            {
+                return;
+            }
+
+            if (Game["Test"].WordToGuess == answer)
+            {
+                int currentPlayerId = Game["Test"].DrawingPlayer.Id;
+                string username = Users["Test"][currentPlayerId.ToString()].Username;
+                bool isLastRound = false;
+
+                if (Game["Test"].Round >= Game["Test"].MaxRounds)
+                {
+                    isLastRound = true;
+                }
+
+                int nextPlayerId = currentPlayerId + 1;
+                List<Player> activePlayers = new List<Player>();
+
+                while (nextPlayerId < 8)
+                {
+                    if (Users["Test"].ContainsKey(nextPlayerId.ToString()))
+                    {
+                        Users["Test"][currentPlayerId.ToString()].IsAdmin = false;
+                        Users["Test"][nextPlayerId.ToString()].IsAdmin = true;
+                        Game["Test"].DrawingPlayer = Users["Test"][nextPlayerId.ToString()];
+
+                        foreach (KeyValuePair<string, Player> kvp in Users["Test"])
+                        {
+                            activePlayers.Add(kvp.Value);
+                        }
+                        break;
+                    }
+                    nextPlayerId++;
+                }
+
+                if (Game["Test"].DrawingPlayer.Id == Users["Test"][currentPlayerId.ToString()].Id)
+                {
+                    int count = 0;
+                    while (count < 8)
+                    {
+                        if (Users["Test"].ContainsKey(count.ToString()))
+                        {
+                            Users["Test"][currentPlayerId.ToString()].IsAdmin = false;
+                            Users["Test"][count.ToString()].IsAdmin = true;
+                            Game["Test"].DrawingPlayer = Users["Test"][count.ToString()];
+
+                            foreach (KeyValuePair<string, Player> kvp in Users["Test"])
+                            {
+                                activePlayers.Add(kvp.Value);
+                            }
+                            break;
+                        }
+                        count++;
+                    }
+                }
+                // Game["Test"].Round++;
+
+                // add a object instead of the anon object
+                await Clients.Group("Test").SendAsync("RecieveAnswer", new { won = true, username = username, lastRound = isLastRound, round = Game["Test"].Round }, activePlayers);
+            }
         }
     }
 }
