@@ -41,20 +41,29 @@ namespace Hubs
                     DrawingPlayer = null,
                     MaxRounds = 0,
                     Round = 0,
-                    InProgress = false
+                    InProgress = false,
+                    NumberOfPlayers = 0
                 };
+            }
+
+            // todo: redesign the player ids and the particitpation
+            int firstFreeId = 0;
+
+            while (Users["Test"].ContainsKey(firstFreeId.ToString()))
+            {
+                firstFreeId++;
             }
 
             Player player = new Player
             {
-                Id = Users["Test"].Count,
+                Id = firstFreeId,
                 Username = username,
                 Points = 0,
                 IsAdmin = false
             };
             
-            Context.Items.Add("UserID", Users["Test"].Count);
-            Users["Test"].Add(Users["Test"].Count.ToString(), player);
+            Context.Items.Add("UserID", player.Id);
+            Users["Test"].Add(player.Id.ToString(), player);
 
             if (Users["Test"].Count <= 1) 
             {
@@ -84,6 +93,7 @@ namespace Hubs
             {
                 Users.Remove("Test");
                 Game.Remove("Test");
+                await base.OnDisconnectedAsync(exception);
                 return;
             }
 

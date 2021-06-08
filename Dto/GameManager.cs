@@ -8,5 +8,6 @@ namespace Dto
         public Player DrawingPlayer { get; set; }
         public int Round { get; set; }
         public int MaxRounds { get; set; }
+        public int NumberOfPlayers { get; set; }
     }
 }

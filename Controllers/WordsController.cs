@@ -26,9 +26,13 @@ namespace Skraebul_API.Controllers
         [HttpGet]
         public IActionResult Get()
         {
-            return Ok(new {
-                word = Summaries[new Random().Next(0, Summaries.Length)]
-            });
+            string[] words = new string[3];
+
+            for (int i = 0; i < words.Length; i++)
+            {
+                words[i] = Summaries[new Random().Next(0, Summaries.Length)];
+            }
+            return Ok(words);
         }
     }
 }
