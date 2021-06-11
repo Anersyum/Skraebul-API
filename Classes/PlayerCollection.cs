@@ -39,6 +39,7 @@ namespace Classes
                 {
                     this.playerList[i] = null;
                     this.PlayerCount--;
+                    this.ShiftPlayers();
                     return true;
                 }
             }

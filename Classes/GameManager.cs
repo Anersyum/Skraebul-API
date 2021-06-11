@@ -34,5 +34,50 @@ namespace Classes
                 adminPlayer.IsAdmin = true;
             }
         }
+
+        public void ReSetAdmin(int removedUserId)
+        {
+            if (this.Players.GetPlayerById(removedUserId).IsAdmin)
+            {
+                if (this.GetNextPlayer() != null)
+                {
+                    this.GetNextPlayer().IsAdmin = true;
+                }
+            }
+        }
+
+        public bool IsFinished()
+        {
+            return this.Round > this.MaxRounds;
+        }
+
+        public bool IsCorrectWord(string word)
+        {
+            word = word.ToLower();
+
+            return word == this.WordToGuess.ToLower();
+        }
+
+        public RoundInfo NextRound()
+        {
+            int currentPlayerId = this.DrawingPlayer.Id;
+            string username = this.DrawingPlayer.Username;
+            bool isLastRound = this.Round >= this.MaxRounds;
+            Player nextPlayer = this.GetNextPlayer();
+
+            this.Players.GetPlayerById(currentPlayerId).IsAdmin = false;
+            nextPlayer.IsAdmin = true;
+            this.DrawingPlayer = nextPlayer;
+
+            RoundInfo roundInfo = new RoundInfo
+            {
+                Won = true,
+                Username = username,
+                IsLastRound = isLastRound,
+                Round = this.Round
+            };
+
+            return roundInfo;
+        }
     }
 }

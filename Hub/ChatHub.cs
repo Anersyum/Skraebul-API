@@ -70,18 +70,12 @@ namespace Hubs
             GameManager currentGame = GameCollection.GetGame("Test");
 
             int userID = (int)Context.Items["UserID"];
-            string username = GameCollection.GetGame("Test").Players.GetPlayerById(userID).Username;
+            string username = currentGame.Players.GetPlayerById(userID).Username;
 
-            if (currentGame.Players.GetPlayerById(userID).IsAdmin)
-            {
-                if (currentGame.GetNextPlayer() != null)
-                {
-                    currentGame.GetNextPlayer().IsAdmin = true;
-                }
-            }
-
+            currentGame.ReSetAdmin(userID);
             currentGame.Players.RemovePlayer(userID);
             
+            // if there are no players, remove the game
             if (currentGame.Players.PlayerCount == 0)
             {
                 GameCollection.RemoveGame("Test");
@@ -89,15 +83,7 @@ namespace Hubs
                 return;
             }
 
-            List<Player> activePlayers = new List<Player>();
-            
-            for (int i = 0; i < currentGame.Players.MaxPlayerCount; i++)
-            {
-                if (currentGame.Players.GetPlayerAtPostion(i) != null)
-                {
-                    activePlayers.Add(currentGame.Players.GetPlayerAtPostion(i));
-                }   
-            }
+            List<Player> activePlayers = currentGame.Players.ToList();
 
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Test");
             await Clients.OthersInGroup("Test").SendAsync("Disconnected", activePlayers, username);
@@ -113,6 +99,7 @@ namespace Hubs
         {
             GameManager currentGame = GameCollection.GetGame("Test");
 
+            // cannot send word when there is less than one player in room
             if (currentGame.Players.PlayerCount <= 1)
             {
                 return;
@@ -132,40 +119,18 @@ namespace Hubs
         public async Task SendAnswer(string answer)
         {
             GameManager currentGame = GameCollection.GetGame("Test");
-            // todo: gamemanager should decide the wining condition
-            if (currentGame.Round > currentGame.MaxRounds)
+
+            if (currentGame.IsFinished())
             {
                 return;
             }
 
-            if (currentGame.WordToGuess == answer)
+            if (currentGame.IsCorrectWord(answer))
             {
-                int currentPlayerId = currentGame.DrawingPlayer.Id;
-                string username = currentGame.DrawingPlayer.Username;
-                bool isLastRound = false;
-
-                if (currentGame.Round >= currentGame.MaxRounds)
-                {
-                    isLastRound = true;
-                }
-
-                Player nextPlayer = currentGame.GetNextPlayer();
                 List<Player> activePlayers = new List<Player>();
+                activePlayers = currentGame.Players.ToList();
 
-                currentGame.Players.GetPlayerById(currentPlayerId).IsAdmin = false;
-                nextPlayer.IsAdmin = true;
-                currentGame.DrawingPlayer = nextPlayer;
-
-                for (int i = 0; i < currentGame.Players.MaxPlayerCount; i++)
-                {
-                    if (currentGame.Players.GetPlayerAtPostion(i) != null)
-                    {
-                        activePlayers.Add(currentGame.Players.GetPlayerAtPostion(i));
-                    }   
-                }
-
-                // add a object instead of the anon object
-                await Clients.Group("Test").SendAsync("RecieveAnswer", new { won = true, username = username, lastRound = isLastRound, round = GameCollection.GetGame("Test").Round }, activePlayers);
+                await Clients.Group("Test").SendAsync("RecieveAnswer", currentGame.NextRound(), activePlayers);
             }
         }
     }
