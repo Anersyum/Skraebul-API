@@ -21,7 +21,7 @@ namespace Hubs
         // todo: add players to game object
         public override async Task OnConnectedAsync() 
         {
-            string gameId = "";
+            string gameId = "Test";
             var username = Context.GetHttpContext().Request.Query["username"].ToString();
 
             if (username == "")
@@ -30,18 +30,17 @@ namespace Hubs
                 return;
             }
 
-            await Groups.AddToGroupAsync(Context.ConnectionId, "Test");
-
-            if (GameCollection.GetGame("Test") == null) 
+            if (GameCollection.GetGame(gameId) == null)
             {
-                gameId = GameCollection.CreateGame();
-                GameCollection.GetGame("Test").Players = new PlayerCollection(8);
+                GameCollection.CreateGame();
             }
+
+            GameManager currentGame = GameCollection.GetGame(gameId);
 
             // todo: redesign the player ids and the particitpation
             int firstFreeId = 0;
 
-            while (GameCollection.GetGame("Test").Players.GetPlayerAtPostion(firstFreeId) != null)
+            while (currentGame.Players.GetPlayerAtPostion(firstFreeId) != null)
             {
                 firstFreeId++;
             }
@@ -55,26 +54,14 @@ namespace Hubs
             };
             
             Context.Items.Add("UserID", player.Id);
+            currentGame.Players.AddPlayer(player);
+            currentGame.SetRoomAdmin();
 
-            if (GameCollection.GetGame("Test").Players.PlayerCount < 1) 
-            {
-                player.IsAdmin = true;
-                GameCollection.GetGame("Test").DrawingPlayer = player;
-            }
+            await Groups.AddToGroupAsync(Context.ConnectionId, gameId);
 
-            GameCollection.GetGame("Test").Players.AddPlayer(player);
+            List<Player> activePlayers = currentGame.Players.ToList();
 
-            List<Player> activePlayers = new List<Player>();
-
-            for (int i = 0; i < GameCollection.GetGame("Test").Players.MaxPlayerCount; i++)
-            {
-                if (GameCollection.GetGame("Test").Players.GetPlayerAtPostion(i) != null)
-                {
-                    activePlayers.Add(GameCollection.GetGame("Test").Players.GetPlayerAtPostion(i));
-                }   
-            }
-
-            await Clients.Group("Test").SendAsync("Connected", activePlayers, username);
+            await Clients.Group(gameId).SendAsync("Connected", activePlayers, username);
             await base.OnConnectedAsync();
         }
 

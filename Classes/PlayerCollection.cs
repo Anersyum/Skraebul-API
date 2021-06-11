@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Dto;
 
 namespace Classes
@@ -16,7 +17,7 @@ namespace Classes
         }
 
         public bool AddPlayer(Player player)
-        {
+        { 
             for (int i = 0; i < this.playerList.Length; i++)
             {
                 if (this.playerList[i] == null)
@@ -59,6 +60,21 @@ namespace Classes
             }
 
             return false;
+        }
+
+        public List<Player> ToList()
+        {
+            List<Player> players = new List<Player>();
+
+            for (int i = 0; i < this.MaxPlayerCount; i++)
+            {
+                if (this.playerList[i] != null)
+                {
+                    players.Add(this.playerList[i]);
+                }   
+            }
+
+            return players;
         }
 
         public Player GetPlayerAtPostion(int position)

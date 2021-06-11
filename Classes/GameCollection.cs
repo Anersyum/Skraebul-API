@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Dto;
 
 namespace Classes
 {
@@ -7,7 +8,7 @@ namespace Classes
     {
         // todo: leave int ids after testing
         //  private Dictionary<int, GameManager> GameList;
-         private Dictionary<string, GameManager> GameList = new Dictionary<string, GameManager>();
+         private Dictionary<string, GameManager> gameList = new Dictionary<string, GameManager>();
 
          public string CreateGame()
          {
@@ -19,9 +20,10 @@ namespace Classes
             //     gameId = new Random().Next(0, 100000);
             // }
 
-            if (!this.GameList.ContainsKey("Test"))
+            if (!this.gameList.ContainsKey(testId))
             {
-                this.GameList[testId] = new GameManager();
+                this.gameList[testId] = new GameManager();
+                this.gameList[testId].Players = new PlayerCollection(8);
             }
 
             // System.Console.WriteLine($"Game with the id {gameId} has been created!"); // maybe log it with a logger
@@ -52,24 +54,24 @@ namespace Classes
 
         public bool RemoveGame(string gameId)
         {
-            if (!this.GameList.ContainsKey(gameId))
+            if (!this.gameList.ContainsKey(gameId))
             {
                 return false;
             }
 
-            this.GameList.Remove(gameId);
+            this.gameList.Remove(gameId);
 
             return true;
         }
 
         public GameManager GetGame(string gameId)
         {
-            if (!this.GameList.ContainsKey(gameId))
+            if (!this.gameList.ContainsKey(gameId))
             {
                 return null;
             }
 
-            return this.GameList[gameId];
+            return this.gameList[gameId];
         }
     }
 }

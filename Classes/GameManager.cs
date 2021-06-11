@@ -25,5 +25,14 @@ namespace Classes
             return nextPlayer;
         }
 
+        //todo: try to find a different way maybe?
+        public void SetRoomAdmin()
+        {
+            Player adminPlayer = this.Players.GetPlayerAtPostion(0);
+            if (adminPlayer != null && adminPlayer.IsAdmin == false)
+            {
+                adminPlayer.IsAdmin = true;
+            }
+        }
     }
 }
