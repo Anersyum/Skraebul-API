@@ -32,6 +32,7 @@ namespace Classes
             if (adminPlayer != null && adminPlayer.IsAdmin == false)
             {
                 adminPlayer.IsAdmin = true;
+                this.DrawingPlayer = adminPlayer;
             }
         }
 
