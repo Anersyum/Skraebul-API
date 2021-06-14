@@ -133,6 +133,7 @@ namespace Hubs
                 {
                     currentGame.CorrectAnswers++;
                     guessingPlayer.GuessedCorrectly = true;
+                    await Clients.Caller.SendAsync("RecieveAnswerMessage");
                 }
 
                 if (currentGame.CorrectAnswers >= (currentGame.Players.PlayerCount - 1))
