@@ -11,6 +11,7 @@ namespace Classes
         public int Round { get; set; }
         public int MaxRounds { get; set; }
         public int NumberOfPlayers { get; set; }
+        public int CorrectAnswers { get; set; }
 
         public Player GetNextPlayer()
         {
@@ -79,6 +80,20 @@ namespace Classes
             };
 
             return roundInfo;
+        }
+
+        public void SetUpRound(string wordToGuess)
+        {
+            if (!this.InProgress)
+            {
+                this.MaxRounds = this.Players.PlayerCount * 2;
+            }
+
+            this.InProgress = true;
+            this.WordToGuess = wordToGuess;
+            this.Round++; // add check to see if max rounds is 0 because a player cannot play alone
+            this.CorrectAnswers = 0;
+            this.Players.SetGuessedCorretlyTo(false);
         }
     }
 }

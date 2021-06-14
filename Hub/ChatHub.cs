@@ -35,7 +35,7 @@ namespace Hubs
             }
 
             GameManager currentGame = GameCollection.GetGame(gameId);
-
+            
             // todo: redesign the player ids and the particitpation
             int firstFreeId = 0;
 
@@ -49,7 +49,8 @@ namespace Hubs
                 Id = firstFreeId,
                 Username = username,
                 Points = 0,
-                IsAdmin = false
+                IsAdmin = false,
+                GuessedCorrectly = false
             };
             
             Context.Items.Add("UserID", player.Id);
@@ -103,9 +104,8 @@ namespace Hubs
             {
                 return;
             }
-            currentGame.WordToGuess = word;
-            currentGame.MaxRounds = currentGame.Players.PlayerCount * 2;
-            currentGame.Round++; // add check to see if max rounds is 0 because a player cannot play alone
+
+            currentGame.SetUpRound(word);
 
             await Clients.OthersInGroup("Test").SendAsync("RecieveChosenWord", word);
         }
@@ -118,7 +118,7 @@ namespace Hubs
         public async Task SendAnswer(string answer)
         {
             GameManager currentGame = GameCollection.GetGame("Test");
-
+            
             if (currentGame.IsFinished())
             {
                 return;
@@ -126,10 +126,23 @@ namespace Hubs
 
             if (currentGame.IsCorrectWord(answer))
             {
-                List<Player> activePlayers = new List<Player>();
-                activePlayers = currentGame.Players.ToList();
+                int playerId = (int)Context.Items["UserID"];
+                Player guessingPlayer = currentGame.Players.GetPlayerById(playerId);
 
-                await Clients.Group("Test").SendAsync("RecieveAnswer", currentGame.NextRound(), activePlayers);
+                if (!guessingPlayer.GuessedCorrectly)
+                {
+                    currentGame.CorrectAnswers++;
+                    guessingPlayer.GuessedCorrectly = true;
+                }
+
+                if (currentGame.CorrectAnswers >= (currentGame.Players.PlayerCount - 1))
+                {
+                    List<Player> activePlayers = new List<Player>();
+                    activePlayers = currentGame.Players.ToList();
+
+                    await Clients.Group("Test").SendAsync("RecieveAnswer", currentGame.NextRound(), activePlayers);
+                    return;
+                }
             }
         }
     }

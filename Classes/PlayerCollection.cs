@@ -132,5 +132,16 @@ namespace Classes
             this.playerList = sortedPlayers;
             sortedPlayers = null;
         }
+
+        public void SetGuessedCorretlyTo(bool guessedCorrectly)
+        {
+            for (int i = 0; i < this.playerList.Length; i++)
+            {
+                if (this.playerList[i] != null)
+                {
+                    this.playerList[i].GuessedCorrectly = guessedCorrectly;
+                }
+            }
+        }
     }
 }
