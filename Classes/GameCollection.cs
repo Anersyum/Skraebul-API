@@ -73,5 +73,11 @@ namespace Classes
 
             return this.gameList[gameId];
         }
+
+
+        public bool GameExists(string gameId)
+        {
+            return this.GetGame(gameId) != null;
+        }
     }
 }

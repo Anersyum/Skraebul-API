@@ -18,7 +18,6 @@ namespace Hubs
         }
 
         // todo: generate random room ids for groups
-        // todo: add players to game object
         public override async Task OnConnectedAsync() 
         {
             string gameId = "Test";
@@ -30,7 +29,7 @@ namespace Hubs
                 return;
             }
 
-            if (GameCollection.GetGame(gameId) == null)
+            if (!GameCollection.GameExists(gameId))
             {
                 GameCollection.CreateGame();
             }
