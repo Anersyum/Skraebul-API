@@ -10,9 +10,8 @@ namespace Classes
         //  private Dictionary<int, GameManager> GameList;
          private Dictionary<string, GameManager> gameList = new Dictionary<string, GameManager>();
 
-         public string CreateGame()
+         public string CreateGame(string gameId)
          {
-            string testId = "Test";
             // int gameId = new Random().Next(0, 100000);
             
             // while (this.GameList.ContainsKey(testId))
@@ -20,14 +19,14 @@ namespace Classes
             //     gameId = new Random().Next(0, 100000);
             // }
 
-            if (!this.gameList.ContainsKey(testId))
+            if (!this.gameList.ContainsKey(gameId))
             {
-                this.gameList[testId] = new GameManager();
-                this.gameList[testId].Players = new PlayerCollection(8);
+                this.gameList[gameId] = new GameManager();
+                this.gameList[gameId].Players = new PlayerCollection(8);
             }
 
             // System.Console.WriteLine($"Game with the id {gameId} has been created!"); // maybe log it with a logger
-            return testId;
+            return gameId;
          }
 
         // public bool RemoveGame(int gameId)

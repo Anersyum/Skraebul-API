@@ -20,7 +20,8 @@ namespace Hubs
         // todo: generate random room ids for groups
         public override async Task OnConnectedAsync() 
         {
-            string gameId = "Test";
+            string gameId = Context.GetHttpContext().Request.Query["room"].ToString();
+            bool isJoiningRoom = Convert.ToBoolean(Context.GetHttpContext().Request.Query["joinroom"].ToString());
             var username = Context.GetHttpContext().Request.Query["username"].ToString();
 
             if (username == "")
@@ -29,9 +30,9 @@ namespace Hubs
                 return;
             }
 
-            if (!GameCollection.GameExists(gameId))
+            if (!GameCollection.GameExists(gameId) && !isJoiningRoom)
             {
-                GameCollection.CreateGame();
+                GameCollection.CreateGame(gameId);
             }
 
             GameManager currentGame = GameCollection.GetGame(gameId);
@@ -67,7 +68,8 @@ namespace Hubs
 
         public override async Task OnDisconnectedAsync(Exception exception) 
         {
-            GameManager currentGame = GameCollection.GetGame("Test");
+            string gameId = Context.GetHttpContext().Request.Query["room"].ToString();
+            GameManager currentGame = GameCollection.GetGame(gameId);
 
             int userID = (int)Context.Items["UserID"];
             string username = currentGame.Players.GetPlayerById(userID).Username;
@@ -78,26 +80,29 @@ namespace Hubs
             // if there are no players, remove the game
             if (currentGame.Players.PlayerCount == 0)
             {
-                GameCollection.RemoveGame("Test");
+                GameCollection.RemoveGame(gameId);
                 await base.OnDisconnectedAsync(exception);
                 return;
             }
 
             List<Player> activePlayers = currentGame.Players.ToList();
 
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Test");
-            await Clients.OthersInGroup("Test").SendAsync("Disconnected", activePlayers, username);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, gameId);
+            await Clients.OthersInGroup(gameId).SendAsync("Disconnected", activePlayers, username);
             await base.OnDisconnectedAsync(exception);
         }
 
         public async Task SendMove(Move move) 
         {
-            await Clients.OthersInGroup("Test").SendAsync("RecieveMove", move);
+            string gameId = Context.GetHttpContext().Request.Query["room"].ToString();
+
+            await Clients.OthersInGroup(gameId).SendAsync("RecieveMove", move);
         }
 
         public async Task SendChosenWord(string word) 
         {
-            GameManager currentGame = GameCollection.GetGame("Test");
+            string gameId = Context.GetHttpContext().Request.Query["room"].ToString();
+            GameManager currentGame = GameCollection.GetGame(gameId);
 
             // cannot send word when there is less than one player in room
             if (currentGame.Players.PlayerCount <= 1)
@@ -107,17 +112,20 @@ namespace Hubs
 
             currentGame.SetUpRound(word);
 
-            await Clients.OthersInGroup("Test").SendAsync("RecieveChosenWord", word);
+            await Clients.OthersInGroup(gameId).SendAsync("RecieveChosenWord", word);
         }
 
         public async Task SendUncoveredLetter(string letter, int letterPosition)
         {
-            await Clients.OthersInGroup("Test").SendAsync("RecieveUncoveredLetter", letter, letterPosition);
+            string gameId = Context.GetHttpContext().Request.Query["room"].ToString();
+
+            await Clients.OthersInGroup(gameId).SendAsync("RecieveUncoveredLetter", letter, letterPosition);
         }
 
         public async Task SendAnswer(string answer, int time)
         {
-            GameManager currentGame = GameCollection.GetGame("Test");
+            string gameId = Context.GetHttpContext().Request.Query["room"].ToString();
+            GameManager currentGame = GameCollection.GetGame(gameId);
             
             if (currentGame.IsFinished())
             {
@@ -142,19 +150,20 @@ namespace Hubs
                     List<Player> activePlayers = new List<Player>();
                     activePlayers = currentGame.Players.ToList();
 
-                    await Clients.Group("Test").SendAsync("RecieveAnswer", currentGame.NextRound(), activePlayers);
+                    await Clients.Group(gameId).SendAsync("RecieveAnswer", currentGame.NextRound(), activePlayers);
                 }
             }
         }
 
         public async Task EndRoundViaTimer()
         {
-            GameManager currentGame = GameCollection.GetGame("Test");
+            string gameId = Context.GetHttpContext().Request.Query["room"].ToString();
+            GameManager currentGame = GameCollection.GetGame(gameId);
 
             List<Player> activePlayers = new List<Player>();
             activePlayers = currentGame.Players.ToList();
 
-            await Clients.Group("Test").SendAsync("EndRoundViaTimer", currentGame.NextRound(), activePlayers);
+            await Clients.Group(gameId).SendAsync("EndRoundViaTimer", currentGame.NextRound(), activePlayers);
         }
     }
 }
