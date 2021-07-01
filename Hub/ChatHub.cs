@@ -115,7 +115,7 @@ namespace Hubs
             await Clients.OthersInGroup("Test").SendAsync("RecieveUncoveredLetter", letter, letterPosition);
         }
 
-        public async Task SendAnswer(string answer)
+        public async Task SendAnswer(string answer, int time)
         {
             GameManager currentGame = GameCollection.GetGame("Test");
             
@@ -133,6 +133,7 @@ namespace Hubs
                 {
                     currentGame.CorrectAnswers++;
                     guessingPlayer.GuessedCorrectly = true;
+                    guessingPlayer.Points += (time * 2);
                     await Clients.Caller.SendAsync("RecieveAnswerMessage");
                 }
 
@@ -142,7 +143,6 @@ namespace Hubs
                     activePlayers = currentGame.Players.ToList();
 
                     await Clients.Group("Test").SendAsync("RecieveAnswer", currentGame.NextRound(), activePlayers);
-                    return;
                 }
             }
         }
