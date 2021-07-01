@@ -134,7 +134,7 @@ namespace Hubs
                     currentGame.CorrectAnswers++;
                     guessingPlayer.GuessedCorrectly = true;
                     guessingPlayer.Points += (time * 2);
-                    await Clients.Caller.SendAsync("RecieveAnswerMessage");
+                    await Clients.Caller.SendAsync("RecieveAnswerMessage", answer);
                 }
 
                 if (currentGame.CorrectAnswers >= (currentGame.Players.PlayerCount - 1))
@@ -145,6 +145,16 @@ namespace Hubs
                     await Clients.Group("Test").SendAsync("RecieveAnswer", currentGame.NextRound(), activePlayers);
                 }
             }
+        }
+
+        public async Task EndRoundViaTimer()
+        {
+            GameManager currentGame = GameCollection.GetGame("Test");
+
+            List<Player> activePlayers = new List<Player>();
+            activePlayers = currentGame.Players.ToList();
+
+            await Clients.Group("Test").SendAsync("EndRoundViaTimer", currentGame.NextRound(), activePlayers);
         }
     }
 }
