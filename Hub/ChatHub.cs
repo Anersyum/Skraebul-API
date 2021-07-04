@@ -64,12 +64,12 @@ namespace Hubs
 
             GameManager currentGame = GameCollection.GetGame(gameId);
 
-            // if (currentGame.InProgress)
-            // {
-            //     await Clients.Caller.SendAsync("FailedToConnect", "This game has already started.");
-            //     Context.Abort();
-            //     return;
-            // }
+            if (currentGame.InProgress)
+            {
+                await Clients.Caller.SendAsync("FailedToConnect", "This game has already started.");
+                Context.Abort();
+                return;
+            }
             
             // todo: redesign the player ids and the particitpation
             int firstFreeId = 0;
@@ -103,6 +103,12 @@ namespace Hubs
 
         public override async Task OnDisconnectedAsync(Exception exception) 
         {
+            if (!Context.Items.ContainsKey("GameID"))
+            {
+                await base.OnDisconnectedAsync(exception);
+                return;
+            }
+
             ulong gameId = (ulong)Context.Items["GameID"];
             
             if (!GameCollection.GameExists(gameId)) 
