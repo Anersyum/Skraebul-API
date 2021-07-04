@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Dto;
 using Classes;
+using System.Text.RegularExpressions;
 
 namespace Hubs
 {
@@ -23,19 +24,12 @@ namespace Hubs
             ulong gameId = 0;
 
             // check for empty room number
-            try
+            string roomNo = Context.GetHttpContext().Request.Query["room"].ToString();
+            Regex regex = new Regex(@"\D+");
+
+            if (roomNo != "" && !regex.IsMatch(roomNo))
             {
-                string roomNo = Context.GetHttpContext().Request.Query["room"].ToString();
-                
-                if (roomNo != "")
-                {
-                    gameId = ulong.Parse(roomNo);
-                }
-            }
-            catch (System.Exception)
-            {
-                await Clients.Caller.SendAsync("FailedToConnect", "Rooms can only be a number");
-                return;
+                gameId = ulong.Parse(roomNo);
             }
 
             bool isJoiningRoom = Convert.ToBoolean(Context.GetHttpContext().Request.Query["joinroom"].ToString());
