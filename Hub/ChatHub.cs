@@ -22,7 +22,7 @@ namespace Hubs
         {
             string gameId = Context.GetHttpContext().Request.Query["room"].ToString();
             bool isJoiningRoom = Convert.ToBoolean(Context.GetHttpContext().Request.Query["joinroom"].ToString());
-            var username = Context.GetHttpContext().Request.Query["username"].ToString();
+            string username = Context.GetHttpContext().Request.Query["username"].ToString();
 
             if (username == "")
             {
@@ -30,9 +30,17 @@ namespace Hubs
                 return;
             }
 
-            if (!GameCollection.GameExists(gameId) && !isJoiningRoom)
+            if (!GameCollection.GameExists(gameId))
             {
-                GameCollection.CreateGame(gameId);
+                if (!isJoiningRoom)
+                {
+                    GameCollection.CreateGame(gameId);
+                }
+                else 
+                {
+                    await Clients.Caller.SendAsync("FailedToConnect", "The room does not exist.");
+                    return;
+                }
             }
 
             GameManager currentGame = GameCollection.GetGame(gameId);
