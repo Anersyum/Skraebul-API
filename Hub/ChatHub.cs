@@ -22,6 +22,7 @@ namespace Hubs
         {
             ulong gameId = 0;
 
+            // check for empty room number
             try
             {
                 string roomNo = Context.GetHttpContext().Request.Query["room"].ToString();
@@ -43,6 +44,7 @@ namespace Hubs
             if (username == "")
             {
                 await Clients.Caller.SendAsync("FailedToConnect", "Username can't be empty.");
+                Context.Abort();
                 return;
             }
 
@@ -55,6 +57,7 @@ namespace Hubs
                 else 
                 {
                     await Clients.Caller.SendAsync("FailedToConnect", "The room does not exist.");
+                    Context.Abort();
                     return;
                 }
             }
@@ -93,6 +96,13 @@ namespace Hubs
         public override async Task OnDisconnectedAsync(Exception exception) 
         {
             ulong gameId = ulong.Parse(Context.GetHttpContext().Request.Query["room"].ToString());
+            
+            if (!GameCollection.GameExists(gameId)) 
+            {
+                await base.OnDisconnectedAsync(exception);
+                return;
+            }
+
             GameManager currentGame = GameCollection.GetGame(gameId);
 
             int userID = (int)Context.Items["UserID"];

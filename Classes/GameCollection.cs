@@ -7,7 +7,7 @@ namespace Classes
     class GameCollection
     {
         // todo: leave int ids after testing
-         private Dictionary<ulong, GameManager> gameList;
+         private Dictionary<ulong, GameManager> gameList = new Dictionary<ulong, GameManager>();
          private ulong gameNumber = 0;
         //  private Dictionary<string, GameManager> gameList = new Dictionary<string, GameManager>();
 
