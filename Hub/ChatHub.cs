@@ -63,6 +63,13 @@ namespace Hubs
             }
 
             GameManager currentGame = GameCollection.GetGame(gameId);
+
+            // if (currentGame.InProgress)
+            // {
+            //     await Clients.Caller.SendAsync("FailedToConnect", "This game has already started.");
+            //     Context.Abort();
+            //     return;
+            // }
             
             // todo: redesign the player ids and the particitpation
             int firstFreeId = 0;
@@ -82,6 +89,7 @@ namespace Hubs
             };
             
             Context.Items.Add("UserID", player.Id);
+            Context.Items.Add("GameID", gameId);
             currentGame.Players.AddPlayer(player);
             currentGame.SetRoomAdmin();
 
@@ -95,7 +103,7 @@ namespace Hubs
 
         public override async Task OnDisconnectedAsync(Exception exception) 
         {
-            ulong gameId = ulong.Parse(Context.GetHttpContext().Request.Query["room"].ToString());
+            ulong gameId = (ulong)Context.Items["GameID"];
             
             if (!GameCollection.GameExists(gameId)) 
             {
@@ -128,14 +136,14 @@ namespace Hubs
 
         public async Task SendMove(Move move) 
         {
-            string gameId = Context.GetHttpContext().Request.Query["room"].ToString();
+            ulong gameId = (ulong)Context.Items["GameID"];
 
-            await Clients.OthersInGroup(gameId).SendAsync("RecieveMove", move);
+            await Clients.OthersInGroup(gameId.ToString()).SendAsync("RecieveMove", move);
         }
 
         public async Task SendChosenWord(string word) 
         {
-            ulong gameId = ulong.Parse(Context.GetHttpContext().Request.Query["room"].ToString());
+            ulong gameId = (ulong)Context.Items["GameID"];
             GameManager currentGame = GameCollection.GetGame(gameId);
 
             // cannot send word when there is less than one player in room
@@ -151,14 +159,14 @@ namespace Hubs
 
         public async Task SendUncoveredLetter(string letter, int letterPosition)
         {
-            string gameId = Context.GetHttpContext().Request.Query["room"].ToString();
+            ulong gameId = (ulong)Context.Items["GameID"];
 
-            await Clients.OthersInGroup(gameId).SendAsync("RecieveUncoveredLetter", letter, letterPosition);
+            await Clients.OthersInGroup(gameId.ToString()).SendAsync("RecieveUncoveredLetter", letter, letterPosition);
         }
 
         public async Task SendAnswer(string answer, int time)
         {
-            ulong gameId = ulong.Parse(Context.GetHttpContext().Request.Query["room"].ToString());
+            ulong gameId = (ulong)Context.Items["GameID"];
             GameManager currentGame = GameCollection.GetGame(gameId);
             
             if (currentGame.IsFinished())
@@ -191,7 +199,7 @@ namespace Hubs
 
         public async Task EndRoundViaTimer()
         {
-            ulong gameId = ulong.Parse(Context.GetHttpContext().Request.Query["room"].ToString());
+            ulong gameId = (ulong)Context.Items["GameID"];
             GameManager currentGame = GameCollection.GetGame(gameId);
 
             List<Player> activePlayers = new List<Player>();
