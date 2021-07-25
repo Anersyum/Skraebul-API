@@ -95,5 +95,10 @@ namespace Classes
             this.CorrectAnswers = 0;
             this.Players.SetGuessedCorretlyTo(false);
         }
+
+        public bool IsRoomFull()
+        {
+            return this.NumberOfPlayers >= 8;
+        }
     }
 }

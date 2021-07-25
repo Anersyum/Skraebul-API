@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
@@ -61,6 +60,13 @@ namespace Hubs
             if (currentGame.InProgress)
             {
                 await Clients.Caller.SendAsync("FailedToConnect", "This game has already started.");
+                Context.Abort();
+                return;
+            }
+
+            if (currentGame.IsRoomFull())
+            {
+                await Clients.Caller.SendAsync("FailedToConnect", "The room is full.");
                 Context.Abort();
                 return;
             }
