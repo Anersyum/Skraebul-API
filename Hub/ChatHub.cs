@@ -190,6 +190,7 @@ namespace Hubs
                     currentGame.CorrectAnswers++;
                     guessingPlayer.GuessedCorrectly = true;
                     guessingPlayer.Points += (time * 2);
+                    guessingPlayer.GottenPoints = time * 2;
                     await Clients.Caller.SendAsync("RecieveAnswerMessage", answer);
                 }
 
