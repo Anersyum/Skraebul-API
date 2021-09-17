@@ -7,51 +7,52 @@ namespace Classes
     class GameCollection
     {
         // todo: leave int ids after testing
-         private Dictionary<ulong, GameManager> gameList = new Dictionary<ulong, GameManager>();
-         private ulong gameNumber = 0;
+         private Dictionary<string, GameManager> gameList = new Dictionary<string, GameManager>();
         //  private Dictionary<string, GameManager> gameList = new Dictionary<string, GameManager>();
 
-         public ulong CreateGame()
+         public string CreateGame(string gameName = "")
          {
-            ++gameNumber;
-            ulong gameId = gameNumber;
-
-            if (!this.gameList.ContainsKey(gameId))
+            if (gameName == "") 
             {
-                this.gameList[gameId] = new GameManager();
-                this.gameList[gameId].Players = new PlayerCollection(8);
+                gameName = "lsdkfjlksdj";
+            }
+
+            if (!this.gameList.ContainsKey(gameName))
+            {
+                this.gameList[gameName] = new GameManager();
+                this.gameList[gameName].Players = new PlayerCollection(8);
             }
 
             // System.Console.WriteLine($"Game with the id {gameId} has been created!"); // maybe log it with a logger
-            return gameId;
+            return gameName;
          }
 
-        public bool RemoveGame(ulong gameId)
+        public bool RemoveGame(string gameName)
         {
-            if (!this.gameList.ContainsKey(gameId))
+            if (!this.gameList.ContainsKey(gameName))
             {
                 return false;
             }
 
-            this.gameList.Remove(gameId);
+            this.gameList.Remove(gameName);
 
             return true;
         }
 
-        public GameManager GetGame(ulong gameId)
+        public GameManager GetGame(string gameName)
         {
-            if (!this.gameList.ContainsKey(gameId))
+            if (!this.gameList.ContainsKey(gameName))
             {
                 return null;
             }
 
-            return this.gameList[gameId];
+            return this.gameList[gameName];
         }
 
 
-        public bool GameExists(ulong gameId)
+        public bool GameExists(string gameName)
         {
-            return this.GetGame(gameId) != null;
+            return this.GetGame(gameName) != null;
         }
     }
 }
