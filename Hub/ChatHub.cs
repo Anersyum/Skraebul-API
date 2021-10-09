@@ -12,15 +12,8 @@ namespace Hubs
     {
         private static GameCollection GameCollection = new GameCollection();
 
-        public async Task SendMessage(string username, string message)
-        {
-            await Clients.All.SendAsync("RecieveMessage", new {username = username, message = message});
-        }
-
-        // todo: generate random room ids for groups
         public override async Task OnConnectedAsync() 
         {
-            // check for empty room number
             string roomName = Context.GetHttpContext().Request.Query["room"].ToString();
 
             bool isJoiningRoom = Convert.ToBoolean(Context.GetHttpContext().Request.Query["joinroom"].ToString());
@@ -165,8 +158,12 @@ namespace Hubs
         public async Task SendAnswer(string answer, int time)
         {
             string roomName = (string)Context.Items["GameID"];
+            int playerId = (int)Context.Items["UserID"];
             GameManager currentGame = GameCollection.GetGame(roomName);
+            Player guessingPlayer = currentGame.Players.GetPlayerById(playerId);
             
+            await this.SendMessage(roomName, guessingPlayer.Username, answer);
+
             if (currentGame.IsFinished())
             {
                 return;
@@ -174,9 +171,7 @@ namespace Hubs
 
             if (currentGame.IsCorrectWord(answer))
             {
-                int playerId = (int)Context.Items["UserID"];
-                Player guessingPlayer = currentGame.Players.GetPlayerById(playerId);
-
+                // break into method todo
                 if (!guessingPlayer.GuessedCorrectly)
                 {
                     currentGame.CorrectAnswers++;
@@ -194,6 +189,11 @@ namespace Hubs
                     await Clients.Group(roomName).SendAsync("RecieveAnswer", currentGame.NextRound(), activePlayers);
                 }
             }
+        }
+   
+        private async Task SendMessage(string roomName, string username, string message)
+        {
+            await Clients.Group(roomName).SendAsync("RecieveMessage", new {username = username, message = message});
         }
 
         public async Task EndRoundViaTimer()

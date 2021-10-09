@@ -55,6 +55,10 @@ namespace Classes
 
         public bool IsCorrectWord(string word)
         {
+            if (this.WordToGuess == null) {
+                return false;
+            }
+
             word = word.ToLower();
 
             return word == this.WordToGuess.ToLower();
