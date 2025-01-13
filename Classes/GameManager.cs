@@ -1,108 +1,114 @@
-using Dto;
+using Skraebul_API.Dto;
 
-namespace Classes
+namespace Skraebul_API.Classes;
+
+class GameManager
 {
-    class GameManager
+    public string WordToGuess { get; set; }
+    
+    public PlayerCollection Players { get; set; }
+    
+    public bool InProgress { get; set; }
+    
+    public Player DrawingPlayer { get; set; }
+    
+    public int Round { get; set; }
+    
+    public int MaxRounds { get; set; }
+    
+    public int NumberOfPlayers { get; set; }
+    
+    public int CorrectAnswers { get; set; }
+
+    public Player GetNextPlayer()
     {
-        public string WordToGuess { get; set; }
-        public PlayerCollection Players { get; set; }
-        public bool InProgress { get; set; }
-        public Player DrawingPlayer { get; set; }
-        public int Round { get; set; }
-        public int MaxRounds { get; set; }
-        public int NumberOfPlayers { get; set; }
-        public int CorrectAnswers { get; set; }
+        int currentDrawingPlayerPosition = Players.GetPlayerPosition(DrawingPlayer);
+        Player nextPlayer = Players.GetPlayerAtPostion(currentDrawingPlayerPosition + 1);
 
-        public Player GetNextPlayer()
+        if (nextPlayer == null)
         {
-            int currentDrawingPlayerPositon = Players.GetPlayerPosition(DrawingPlayer);
-            Player nextPlayer = Players.GetPlayerAtPostion(currentDrawingPlayerPositon + 1);
-
-            if (nextPlayer == null)
-            {
-                return Players.GetPlayerAtPostion(0);
-            }
-
-            return nextPlayer;
+            return Players.GetPlayerAtPostion(0);
         }
 
-        //todo: try to find a different way maybe?
-        public void SetRoomAdmin()
-        {
-            Player adminPlayer = this.Players.GetPlayerAtPostion(0);
-            if (adminPlayer != null && adminPlayer.IsAdmin == false)
-            {
-                adminPlayer.IsAdmin = true;
-                this.DrawingPlayer = adminPlayer;
-            }
-        }
+        return nextPlayer;
+    }
 
-        public void ReSetAdmin(int removedUserId)
+    //todo: try to find a different way maybe?
+    public void SetRoomAdmin()
+    {
+        Player adminPlayer = Players.GetPlayerAtPostion(0);
+        if (adminPlayer != null && adminPlayer.IsAdmin == false)
         {
-            if (this.Players.GetPlayerById(removedUserId).IsAdmin)
+            adminPlayer.IsAdmin = true;
+            DrawingPlayer = adminPlayer;
+        }
+    }
+
+    public void ReSetAdmin(int removedUserId)
+    {
+        if (Players.GetPlayerById(removedUserId).IsAdmin)
+        {
+            if (GetNextPlayer() != null)
             {
-                if (this.GetNextPlayer() != null)
-                {
-                    this.GetNextPlayer().IsAdmin = true;
-                }
+                GetNextPlayer().IsAdmin = true;
             }
         }
+    }
 
-        public bool IsFinished()
-        {
-            return this.Round > this.MaxRounds;
+    public bool IsFinished()
+    {
+        return Round > MaxRounds;
+    }
+
+    public bool IsCorrectWord(string word)
+    {
+        if (WordToGuess == null) {
+            return false;
         }
 
-        public bool IsCorrectWord(string word)
+        word = word.ToLower();
+
+        return word == WordToGuess.ToLower();
+    }
+
+    public RoundInfo NextRound()
+    {
+        int currentPlayerId = DrawingPlayer.Id;
+        string username = DrawingPlayer.Username;
+        bool isLastRound = Round >= MaxRounds;
+        Player nextPlayer = GetNextPlayer();
+
+        Players.GetPlayerById(currentPlayerId).IsAdmin = false;
+        nextPlayer.IsAdmin = true;
+        DrawingPlayer = nextPlayer;
+
+        RoundInfo roundInfo = new RoundInfo
         {
-            if (this.WordToGuess == null) {
-                return false;
-            }
+            Won = true,
+            Username = username,
+            IsLastRound = isLastRound,
+            Round = Round
+        };
 
-            word = word.ToLower();
+        return roundInfo;
+    }
 
-            return word == this.WordToGuess.ToLower();
+    public void SetUpRound(string wordToGuess)
+    {
+        if (!InProgress)
+        {
+            MaxRounds = Players.PlayerCount * 2;
         }
 
-        public RoundInfo NextRound()
-        {
-            int currentPlayerId = this.DrawingPlayer.Id;
-            string username = this.DrawingPlayer.Username;
-            bool isLastRound = this.Round >= this.MaxRounds;
-            Player nextPlayer = this.GetNextPlayer();
+        InProgress = true;
+        WordToGuess = wordToGuess;
+        Round++; // add check to see if max rounds is 0 because a player cannot play alone
+        CorrectAnswers = 0;
+        Players.SetGuessedCorretlyTo(false);
+    }
 
-            this.Players.GetPlayerById(currentPlayerId).IsAdmin = false;
-            nextPlayer.IsAdmin = true;
-            this.DrawingPlayer = nextPlayer;
-
-            RoundInfo roundInfo = new RoundInfo
-            {
-                Won = true,
-                Username = username,
-                IsLastRound = isLastRound,
-                Round = this.Round
-            };
-
-            return roundInfo;
-        }
-
-        public void SetUpRound(string wordToGuess)
-        {
-            if (!this.InProgress)
-            {
-                this.MaxRounds = this.Players.PlayerCount * 2;
-            }
-
-            this.InProgress = true;
-            this.WordToGuess = wordToGuess;
-            this.Round++; // add check to see if max rounds is 0 because a player cannot play alone
-            this.CorrectAnswers = 0;
-            this.Players.SetGuessedCorretlyTo(false);
-        }
-
-        public bool IsRoomFull()
-        {
-            return this.NumberOfPlayers >= 8;
-        }
+    public bool IsRoomFull()
+    {
+        return NumberOfPlayers >= 8;
     }
 }

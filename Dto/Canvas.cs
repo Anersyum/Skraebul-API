@@ -1,8 +1,8 @@
-namespace Dto
+namespace Skraebul_API.Dto;
+
+internal class Canvas
 {
-    class Canvas
-    {
-        public int CanvasWidth { get; set; }
-        public int CanvasHeight { get; set; }
-    }
+    public int CanvasWidth { get; set; }
+    
+    public int CanvasHeight { get; set; }
 }

@@ -2,209 +2,207 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
-using Dto;
-using Classes;
-using System.Text.RegularExpressions;
+using Skraebul_API.Classes;
+using Skraebul_API.Dto;
 
-namespace Hubs
+namespace Skraebul_API.Hub;
+
+internal class ChatHub : Microsoft.AspNetCore.SignalR.Hub
 {
-    class ChatHub : Hub
+    private static readonly GameCollection GameCollection = new();
+
+    public override async Task OnConnectedAsync() 
     {
-        private static GameCollection GameCollection = new GameCollection();
+        string roomName = Context.GetHttpContext().Request.Query["room"].ToString();
 
-        public override async Task OnConnectedAsync() 
+        bool isJoiningRoom = Convert.ToBoolean(Context.GetHttpContext().Request.Query["joinroom"].ToString());
+        string username = Context.GetHttpContext().Request.Query["username"].ToString();
+
+        if (username == "")
         {
-            string roomName = Context.GetHttpContext().Request.Query["room"].ToString();
-
-            bool isJoiningRoom = Convert.ToBoolean(Context.GetHttpContext().Request.Query["joinroom"].ToString());
-            string username = Context.GetHttpContext().Request.Query["username"].ToString();
-
-            if (username == "")
-            {
-                await Clients.Caller.SendAsync("FailedToConnect", "Username can't be empty.");
-                Context.Abort();
-                return;
-            }
-
-            if (!GameCollection.GameExists(roomName))
-            {
-                if (!isJoiningRoom)
-                {
-                   roomName = GameCollection.CreateGame(roomName);
-                }
-                else 
-                {
-                    await Clients.Caller.SendAsync("FailedToConnect", "The room does not exist.");
-                    Context.Abort();
-                    return;
-                }
-            }
-
-            GameManager currentGame = GameCollection.GetGame(roomName);
-
-            if (currentGame.InProgress)
-            {
-                await Clients.Caller.SendAsync("FailedToConnect", "This game has already started.");
-                Context.Abort();
-                return;
-            }
-
-            if (currentGame.IsRoomFull())
-            {
-                await Clients.Caller.SendAsync("FailedToConnect", "The room is full.");
-                Context.Abort();
-                return;
-            }
-            
-            // todo: redesign the player ids and the particitpation
-            int firstFreeId = 0;
-
-            while (currentGame.Players.GetPlayerAtPostion(firstFreeId) != null)
-            {
-                firstFreeId++;
-            }
-
-            Player player = new Player
-            {
-                Id = firstFreeId,
-                Username = username,
-                Points = 0,
-                IsAdmin = false,
-                GuessedCorrectly = false
-            };
-            
-            Context.Items.Add("UserID", player.Id);
-            Context.Items.Add("GameID", roomName);
-            currentGame.Players.AddPlayer(player);
-            currentGame.SetRoomAdmin();
-
-            await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
-
-            List<Player> activePlayers = currentGame.Players.ToList();
-
-            await Clients.Group(roomName).SendAsync("Connected", activePlayers, username, roomName);
-            await base.OnConnectedAsync();
+            await Clients.Caller.SendAsync("FailedToConnect", "Username can't be empty.");
+            Context.Abort();
+            return;
         }
 
-        public override async Task OnDisconnectedAsync(Exception exception) 
+        if (!GameCollection.GameExists(roomName))
         {
-            if (!Context.Items.ContainsKey("GameID"))
+            if (!isJoiningRoom)
             {
-                await base.OnDisconnectedAsync(exception);
+                roomName = GameCollection.CreateGame(roomName);
+            }
+            else 
+            {
+                await Clients.Caller.SendAsync("FailedToConnect", "The room does not exist.");
+                Context.Abort();
                 return;
             }
+        }
 
-            string roomName = (string)Context.Items["GameID"];
+        GameManager currentGame = GameCollection.GetGame(roomName);
+
+        if (currentGame.InProgress)
+        {
+            await Clients.Caller.SendAsync("FailedToConnect", "This game has already started.");
+            Context.Abort();
+            return;
+        }
+
+        if (currentGame.IsRoomFull())
+        {
+            await Clients.Caller.SendAsync("FailedToConnect", "The room is full.");
+            Context.Abort();
+            return;
+        }
             
-            if (!GameCollection.GameExists(roomName)) 
-            {
-                await base.OnDisconnectedAsync(exception);
-                return;
-            }
+        // todo: redesign the player ids and the particitpation
+        int firstFreeId = 0;
 
-            GameManager currentGame = GameCollection.GetGame(roomName);
+        while (currentGame.Players.GetPlayerAtPostion(firstFreeId) != null)
+        {
+            firstFreeId++;
+        }
 
-            int userID = (int)Context.Items["UserID"];
-            string username = currentGame.Players.GetPlayerById(userID).Username;
-
-            currentGame.ReSetAdmin(userID);
-            currentGame.Players.RemovePlayer(userID);
+        Player player = new Player
+        {
+            Id = firstFreeId,
+            Username = username,
+            Points = 0,
+            IsAdmin = false,
+            GuessedCorrectly = false
+        };
             
-            // if there are no players, remove the game
-            if (currentGame.Players.PlayerCount == 0)
-            {
-                GameCollection.RemoveGame(roomName);
-                await base.OnDisconnectedAsync(exception);
-                return;
-            }
+        Context.Items.Add("UserID", player.Id);
+        Context.Items.Add("GameID", roomName);
+        currentGame.Players.AddPlayer(player);
+        currentGame.SetRoomAdmin();
 
-            List<Player> activePlayers = currentGame.Players.ToList();
+        await Groups.AddToGroupAsync(Context.ConnectionId, roomName);
 
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomName.ToString());
-            await Clients.OthersInGroup(roomName.ToString()).SendAsync("Disconnected", activePlayers, username);
+        List<Player> activePlayers = currentGame.Players.ToList();
+
+        await Clients.Group(roomName).SendAsync("Connected", activePlayers, username, roomName);
+        await base.OnConnectedAsync();
+    }
+
+    public override async Task OnDisconnectedAsync(Exception exception) 
+    {
+        if (!Context.Items.ContainsKey("GameID"))
+        {
             await base.OnDisconnectedAsync(exception);
+            return;
         }
 
-        public async Task SendMove(Move move) 
-        {
-            string roomName = (string)Context.Items["GameID"];
-
-            await Clients.OthersInGroup(roomName).SendAsync("RecieveMove", move);
-        }
-
-        public async Task SendChosenWord(string word) 
-        {
-            string roomName = (string)Context.Items["GameID"];
-            GameManager currentGame = GameCollection.GetGame(roomName);
-
-            // cannot send word when there is less than one player in room
-            if (currentGame.Players.PlayerCount <= 1)
-            {
-                return;
-            }
-
-            currentGame.SetUpRound(word);
-
-            await Clients.OthersInGroup(roomName).SendAsync("RecieveChosenWord", word);
-        }
-
-        public async Task SendUncoveredLetter(string letter, int letterPosition)
-        {
-            string roomName = (string)Context.Items["GameID"];
-
-            await Clients.OthersInGroup(roomName).SendAsync("RecieveUncoveredLetter", letter, letterPosition);
-        }
-
-        public async Task SendAnswer(string answer, int time)
-        {
-            string roomName = (string)Context.Items["GameID"];
-            int playerId = (int)Context.Items["UserID"];
-            GameManager currentGame = GameCollection.GetGame(roomName);
-            Player guessingPlayer = currentGame.Players.GetPlayerById(playerId);
+        string roomName = (string)Context.Items["GameID"];
             
-            await this.SendMessage(roomName, guessingPlayer.Username, answer);
+        if (!GameCollection.GameExists(roomName)) 
+        {
+            await base.OnDisconnectedAsync(exception);
+            return;
+        }
 
-            if (currentGame.IsFinished())
+        GameManager currentGame = GameCollection.GetGame(roomName);
+
+        int userID = (int)Context.Items["UserID"];
+        string username = currentGame.Players.GetPlayerById(userID).Username;
+
+        currentGame.ReSetAdmin(userID);
+        currentGame.Players.RemovePlayer(userID);
+            
+        // if there are no players, remove the game
+        if (currentGame.Players.PlayerCount == 0)
+        {
+            GameCollection.RemoveGame(roomName);
+            await base.OnDisconnectedAsync(exception);
+            return;
+        }
+
+        List<Player> activePlayers = currentGame.Players.ToList();
+
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomName.ToString());
+        await Clients.OthersInGroup(roomName.ToString()).SendAsync("Disconnected", activePlayers, username);
+        await base.OnDisconnectedAsync(exception);
+    }
+
+    public async Task SendMove(Move move) 
+    {
+        string roomName = (string)Context.Items["GameID"];
+
+        await Clients.OthersInGroup(roomName).SendAsync("RecieveMove", move);
+    }
+
+    public async Task SendChosenWord(string word) 
+    {
+        string roomName = (string)Context.Items["GameID"];
+        GameManager currentGame = GameCollection.GetGame(roomName);
+
+        // cannot send word when there is less than one player in room
+        if (currentGame.Players.PlayerCount <= 1)
+        {
+            return;
+        }
+
+        currentGame.SetUpRound(word);
+
+        await Clients.OthersInGroup(roomName).SendAsync("RecieveChosenWord", word);
+    }
+
+    public async Task SendUncoveredLetter(string letter, int letterPosition)
+    {
+        string roomName = (string)Context.Items["GameID"];
+
+        await Clients.OthersInGroup(roomName).SendAsync("RecieveUncoveredLetter", letter, letterPosition);
+    }
+
+    public async Task SendAnswer(string answer, int time)
+    {
+        string roomName = (string)Context.Items["GameID"];
+        int playerId = (int)Context.Items["UserID"];
+        GameManager currentGame = GameCollection.GetGame(roomName);
+        Player guessingPlayer = currentGame.Players.GetPlayerById(playerId);
+            
+        await this.SendMessage(roomName, guessingPlayer.Username, answer);
+
+        if (currentGame.IsFinished())
+        {
+            return;
+        }
+
+        if (currentGame.IsCorrectWord(answer))
+        {
+            // break into method todo
+            if (!guessingPlayer.GuessedCorrectly)
             {
-                return;
+                currentGame.CorrectAnswers++;
+                guessingPlayer.GuessedCorrectly = true;
+                guessingPlayer.Points += (time * 2);
+                guessingPlayer.GottenPoints = time * 2;
+                await Clients.Caller.SendAsync("RecieveAnswerMessage", answer);
             }
 
-            if (currentGame.IsCorrectWord(answer))
+            if (currentGame.CorrectAnswers >= (currentGame.Players.PlayerCount - 1))
             {
-                // break into method todo
-                if (!guessingPlayer.GuessedCorrectly)
-                {
-                    currentGame.CorrectAnswers++;
-                    guessingPlayer.GuessedCorrectly = true;
-                    guessingPlayer.Points += (time * 2);
-                    guessingPlayer.GottenPoints = time * 2;
-                    await Clients.Caller.SendAsync("RecieveAnswerMessage", answer);
-                }
+                List<Player> activePlayers = new List<Player>();
+                activePlayers = currentGame.Players.ToList();
 
-                if (currentGame.CorrectAnswers >= (currentGame.Players.PlayerCount - 1))
-                {
-                    List<Player> activePlayers = new List<Player>();
-                    activePlayers = currentGame.Players.ToList();
-
-                    await Clients.Group(roomName).SendAsync("RecieveAnswer", currentGame.NextRound(), activePlayers);
-                }
+                await Clients.Group(roomName).SendAsync("RecieveAnswer", currentGame.NextRound(), activePlayers);
             }
         }
+    }
    
-        private async Task SendMessage(string roomName, string username, string message)
-        {
-            await Clients.Group(roomName).SendAsync("RecieveMessage", new {username = username, message = message});
-        }
+    private async Task SendMessage(string roomName, string username, string message)
+    {
+        await Clients.Group(roomName).SendAsync("RecieveMessage", new {username = username, message = message});
+    }
 
-        public async Task EndRoundViaTimer()
-        {
-            string roomName = (string)Context.Items["GameID"];
-            GameManager currentGame = GameCollection.GetGame(roomName);
+    public async Task EndRoundViaTimer()
+    {
+        string roomName = (string)Context.Items["GameID"];
+        GameManager currentGame = GameCollection.GetGame(roomName);
 
-            List<Player> activePlayers = new List<Player>();
-            activePlayers = currentGame.Players.ToList();
+        List<Player> activePlayers = new List<Player>();
+        activePlayers = currentGame.Players.ToList();
 
-            await Clients.Group(roomName).SendAsync("EndRoundViaTimer", currentGame.NextRound(), activePlayers);
-        }
+        await Clients.Group(roomName).SendAsync("EndRoundViaTimer", currentGame.NextRound(), activePlayers);
     }
 }

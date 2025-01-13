@@ -1,8 +1,8 @@
-namespace Dto
+namespace Skraebul_API.Dto;
+
+internal class Brush
 {
-    class Brush
-    {
-        public string BrushColor { get; set; }
-        public int BrushWidth { get; set; }
-    }
+    public string BrushColor { get; set; }
+    
+    public int BrushWidth { get; set; }
 }
