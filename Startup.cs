@@ -34,11 +34,12 @@ public class Startup
 
         // app.UseHttpsRedirection();
 
-        app.UseCors(x => x.WithOrigins("http://localhost:4200")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .SetIsOriginAllowed(x => true)
-            .AllowCredentials());
+        app.UseCors(x => 
+            x.WithOrigins("https://localhost:4200", "http://localhost:4200")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials()
+                .Build());
         app.UseRouting();
         // app.UseAuthorization();
         app.UseEndpoints(endpoints =>
